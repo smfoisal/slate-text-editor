@@ -2,7 +2,8 @@ import React, {Component} from 'react';
 import { Editor } from 'slate-react'
 import { Value } from 'slate';
 import Toolbar from './Toolbar';
-import '../assets/slate.css';
+import '../assets/css/css_slate.css';
+import MaterialIcon from 'material-icons-react';
 
 const initialValue = Value.fromJSON({
     document: {
@@ -40,8 +41,23 @@ class SlateEditor extends Component {
     render() {
         return (
             <div className="wrapper">
-                <Toolbar />
-                <Editor value={this.state.value} onChange={this.onChange} />
+                <div className="column_3">
+                    <div className="composeNew">
+                        <button className="composeBtn">
+                            <MaterialIcon icon="add_circle" size={24} />
+                            Compose
+                        </button>
+                    </div>
+                </div>
+                <div className="column_9">
+                    <div className="slateBox">
+                        <Toolbar />
+                        <Editor
+                            value={this.state.value}
+                            onChange={this.onChange}
+                        />
+                    </div>
+                </div>
             </div>
         );
     }

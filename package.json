@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "immutable": "^4.0.0-rc.12",
+    "material-icons-react": "^1.0.4",
     "react": "^16.6.3",
     "react-dom": "^16.6.3",
     "react-ionicons": "^2.1.6",
