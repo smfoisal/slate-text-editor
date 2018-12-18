@@ -3,11 +3,7 @@ import SlateEditor from './components/SlateEditor'
 
 class App extends Component {
     render() {
-        return (
-            <div>
-                <SlateEditor />
-            </div>
-        );
+        return <SlateEditor />
     }
 }
 
