@@ -1,10 +1,8 @@
 import React, {Component, Fragment} from 'react';
 import { Value } from 'slate';
-import { Editor, getEventRange, getEventTransfer } from 'slate-react';
+import { Editor } from 'slate-react';
 import MaterialIcon from 'material-icons-react';
-import isUrl from 'is-url';
-import imageExtensions from 'image-extensions';
-
+import {getBase64, insertImage} from '../handler';
 import '../assets/css/index.css';
 
 const DEFAULT_NODE = 'paragraph';
@@ -30,25 +28,30 @@ const initialValue = Value.fromJSON({
 });
 const toolbarIconColor = '#90A4AE';
 
-function isImage(url) {
-    return !!imageExtensions.find(url.endsWith)
-}
-function insertImage(editor, src, target) {
-    if (target) {
-        editor.select(target)
-    }
-
-    editor.insertBlock({
-        type: 'image',
-        data: { src },
-    })
-}
 class SlateRichEditor extends Component {
+
     constructor (props) {
         super (props);
         this.state = {
+            docIndex: null,
             value: initialValue,
+            title: 'Untitled Document',
         }
+    }
+    componentDidMount () {
+        const {document} = this.props;
+
+        console.log(document);
+
+        if(document !== null) {
+            let list = localStorage.getItem('doc_list');
+            list = list === null ? [] : JSON.parse(list);
+            this.setState({
+                docIndex: document,
+                value: list[document].body,
+            });
+        }
+        console.log(this.state.docIndex);
     }
     onChange = ({ value }) => {
         this.setState({value});
@@ -61,117 +64,6 @@ class SlateRichEditor extends Component {
     hasBlock = type => {
         const { value } = this.state;
         return value.blocks.some(node => node.type === type);
-    }
-
-    renderMarkButton = (type, icon) => {
-        // const isActive = this.hasMark(type);
-        return (
-            <button
-                onMouseDown={event => this.onClickMark(event, type)}
-                className='iconButton'>
-                <MaterialIcon
-                    icon={icon}
-                    color={toolbarIconColor}
-                    size='tiny'
-                />
-            </button>
-        )
-    }
-
-    renderBlockButton = (type, icon) => {
-        let isActive = this.hasBlock(type);
-        if (['numbered-list', 'bulleted-list'].includes(type)) {
-            const { value: { document, blocks } } = this.state;
-            if (blocks.size > 0) {
-                const parent = document.getParent(blocks.first().key)
-                isActive = this.hasBlock('list-item') && parent && parent.type === type
-            }
-        }
-        return (
-            <button
-                onMouseDown={event => this.onClickBlock(event, type)}
-                className='iconButton'>
-                <MaterialIcon
-                    icon={icon}
-                    color={toolbarIconColor}
-                    size='tiny'
-                />
-            </button>
-        )
-    }
-
-    renderImageButton = () => {
-        return (
-            <button
-                onMouseDown={this.onClickImage}
-                className='iconButton'>
-                <MaterialIcon
-                    icon='add_photo_alternate'
-                    color={toolbarIconColor}
-                    size='tiny'
-                />
-            </button>
-        );
-    }
-
-    renderUploadImageButton = () => {
-        return (
-            <div>
-                <input type="file" style={{display: 'none'}} />
-                <button
-                    onMouseDown={this.uploadImage}
-                    className='iconButton'>
-                    <MaterialIcon
-                        icon='attach_file'
-                        color={toolbarIconColor}
-                        size='tiny'
-                    />
-                </button>
-            </div>
-        );
-    }
-
-    renderNode = (props, editor, next) => {
-        const { attributes, children, node, isFocused } = props
-
-        switch (node.type) {
-            case 'block-quote':
-                return <blockquote {...attributes}>{children}</blockquote>
-            case 'bulleted-list':
-                return <ul {...attributes}>{children}</ul>
-            case 'heading-one':
-                return <h1 {...attributes}>{children}</h1>
-            case 'heading-two':
-                return <h2 {...attributes}>{children}</h2>
-            case 'list-item':
-                return <li {...attributes}>{children}</li>
-            case 'numbered-list':
-                return <ol {...attributes}>{children}</ol>
-            case 'image':
-                const src = node.data.get('src')
-                return  <img src={src}
-                            selected={isFocused} {...attributes}
-                            className='editorImg'/>
-            default:
-                return next()
-        }
-    }
-
-    renderMark = (props, editor, next) => {
-        const { children, mark, attributes } = props
-
-        switch (mark.type) {
-            case 'bold':
-                return <strong {...attributes}>{children}</strong>
-            case 'code':
-                return <code {...attributes}>{children}</code>
-            case 'italic':
-                return <em {...attributes}>{children}</em>
-            case 'underlined':
-                return <u {...attributes}>{children}</u>
-            default:
-                return next()
-        }
     }
 
     onKeyDown = (event, editor, next) => {
@@ -266,42 +158,52 @@ class SlateRichEditor extends Component {
         this.editor.command(insertImage, src)
     }
 
-    onDropOrPaste = (event, editor, next) => {
-        const target = getEventRange(event, editor)
-        if (!target && event.type === 'drop') return next()
+    onUploadImage = event => {
+        const selectedFile= event.target.files[0];
+        getBase64(selectedFile).then(base64 => {
+            this.editor.command(insertImage, base64)
+        });
+    };
 
-        const transfer = getEventTransfer(event)
-        const { type, text, files } = transfer
+    saveDoc = () => {
+        const {value, title} = this.state;
+        const list= localStorage.getItem('doc_list');
 
-        if (type === 'files') {
-            for (const file of files) {
-                const reader = new FileReader()
-                const [mime] = file.type.split('/')
-                if (mime !== 'image') continue
+        let docList = list !== null ? JSON.parse(list) : [];
+        console.log(docList);
 
-                reader.addEventListener('load', () => {
-                    editor.command(insertImage, reader.result, target)
-                })
-
-                reader.readAsDataURL(file)
-            }
-            return
+        const content = {
+            title: title,
+            time: Date.now(),
+            body: value.toJSON()
         }
+        docList.push(content);
 
-        if (type === 'text') {
-            if (!isUrl(text)) return next()
-            if (!isImage(text)) return next()
-            editor.command(insertImage, text, target)
-            return
-        }
+        localStorage.setItem('doc_list', JSON.stringify(docList));
+    };
 
-        next()
+    cancelDoc = () => {
+
     }
 
+    /**
+     * RENDER METHODS
+     */
     render() {
-        const {value} = this.state;
+        const {value, title} = this.state;
         return (
             <div className='slateContainer'>
+                <div className="titleBar">
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => this.setState({title: e.target.value})}
+                    />
+                    <div className='actionButtons'>
+                        <button onClick={this.saveDoc}>Save</button>
+                        <button onClick={this.cancelDoc}>Cancel</button>
+                    </div>
+                </div>
                 <Fragment>
                     <div className='toolbar'>
                         {this.renderMarkButton('bold', 'format_bold')}
@@ -320,22 +222,138 @@ class SlateRichEditor extends Component {
                         </div>
                     </div>
                     <Editor
-                        ref={(editor) => this.editor = editor}
                         placeholder="Enter some text..."
+                        ref={(editor) => this.editor = editor}
                         className='editor'
                         value={value}
                         onChange={this.onChange}
                         onKeyDown={this.onKeyDown}
                         renderNode={this.renderNode}
                         renderMark={this.renderMark}
-                        onDrop={this.onDropOrPaste}
-                        onPaste={this.onDropOrPaste}
                     />
                 </Fragment>
+
             </div>
         );
     }
-}
 
+    renderMarkButton = (type, icon) => {
+        // const isActive = this.hasMark(type);
+        return (
+            <button
+                onMouseDown={event => this.onClickMark(event, type)}
+                className='iconButton'>
+                <MaterialIcon
+                    icon={icon}
+                    color={toolbarIconColor}
+                    size='tiny'
+                />
+            </button>
+        )
+    }
+
+    renderBlockButton = (type, icon) => {
+        let isActive = this.hasBlock(type);
+        if (['numbered-list', 'bulleted-list'].includes(type)) {
+            const { value: { document, blocks } } = this.state;
+            if (blocks.size > 0 && blocks.first()) {
+                const parent = document.getParent(blocks.first().key)
+                isActive = this.hasBlock('list-item') && parent && parent.type === type
+            }
+        }
+        return (
+            <button
+                onMouseDown={event => this.onClickBlock(event, type)}
+                className='iconButton'
+            >
+                <MaterialIcon
+                    icon={icon}
+                    color={toolbarIconColor}
+                    size='tiny'
+                />
+            </button>
+        )
+    }
+
+    renderImageButton = () => {
+        return (
+            <button
+                onMouseDown={this.onClickImage}
+                className='iconButton'>
+                <MaterialIcon
+                    icon='insert_link'
+                    color={toolbarIconColor}
+                    size='tiny'
+                />
+            </button>
+        );
+    }
+
+    renderUploadImageButton = () => {
+        return (
+            <button
+                id="test"
+                onMouseDown={() =>  this.refs.fileField.click()}
+                className='iconButton'>
+                <input
+                    ref="fileField"
+                    type="file"
+                    name="image1"
+                    accept=".jpg,.jpeg,.png,.gif,.bmp"
+                    style={{display: 'none'}}
+                    onChange={this.onUploadImage} />
+                <MaterialIcon
+                    icon='add_photo_alternate'
+                    color={toolbarIconColor}
+                    size='tiny'
+                />
+            </button>
+        );
+    }
+
+    renderNode = (props, editor, next) => {
+        const { attributes, children, node, isFocused } = props
+
+        switch (node.type) {
+            case 'block-quote':
+                return <blockquote {...attributes}>{children}</blockquote>
+            case 'bulleted-list':
+                return <ul {...attributes}>{children}</ul>
+            case 'heading-one':
+                return <h1 {...attributes}>{children}</h1>
+            case 'heading-two':
+                return <h2 {...attributes}>{children}</h2>
+            case 'list-item':
+                return <li {...attributes}>{children}</li>
+            case 'numbered-list':
+                return <ol {...attributes}>{children}</ol>
+            case 'image':
+                const src = node.data.get('src')
+                return  <img src={src}
+                             alt='img'
+                             selected={isFocused} {...attributes}
+                             className='editorImg'/>
+            default:
+                return next()
+        }
+    }
+
+    renderMark = (props, editor, next) => {
+        const { children, mark, attributes } = props
+
+        switch (mark.type) {
+            case 'bold':
+                return <strong {...attributes}>{children}</strong>
+            case 'code':
+                return <code {...attributes}>{children}</code>
+            case 'italic':
+                return <em {...attributes}>{children}</em>
+            case 'underlined':
+                return <u {...attributes}>{children}</u>
+            default:
+                return next()
+        }
+    }
+}
 
 export default SlateRichEditor;

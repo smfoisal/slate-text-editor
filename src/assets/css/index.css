@@ -1,16 +1,41 @@
 @import url('https://fonts.googleapis.com/css?family=Roboto+Mono:400,700|Roboto:400,700');
 
+:root {
+    --mainText: #455A64;
+    --subText: #90A4AE;
+    --code: #607D8B;
+    --border : #ECEFF1;
+    --lightBG: #F3F5F7;
+    --brand: #03A9F4;
+    --brandDark: #039BE5;
+}
+
 body {
     margin: 0;
     padding: 0;
     font-family: 'Roboto', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #fafafa;
+    background-color: #fafcfe;
     font-weight: 300;
+    color: var(--mainText);
     line-height: 1.5rem;
 }
 
+/*
+ * COMMON
+ */
+button {
+    font-family: inherit;
+    cursor: pointer;
+}
+button:focus, button:active, input:focus, input:active {
+    outline: none;
+}
+
+/**
+ * MAIN BODY
+ */
 .wrapper {
     display: flex;
     flex-direction: row;
@@ -20,64 +45,126 @@ body {
     margin-right: auto;
     padding: 0.5rem;
 }
-.column_3 {
-    padding: 0.5rem;
-    flex: 1;
-}
-.column_9 {
+.clList {
     padding: 0.5rem;
     flex: 3;
+    overflow: hidden;
 }
-button {
-    font-family: inherit;
+.clEditor {
+    padding: 0.5rem;
+    flex: 8;
+    flex: 8;
+}
+
+/**
+ * LIST SECTION
+ */
+.infoText {
+    font-size: 0.75rem;
+    color: var(--subText);
+    text-align: center;
+}
+.listContainer {
+    background-color: white;
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+}
+.singleDoc {
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1rem;
     cursor: pointer;
 }
-button:focus, button:active {
-    outline: none;
+.singleDoc:hover {
+    background-color: var(--lightBG);
+    transition: 0.3s all;
 }
-.slateBox {
-    background-color: white;
-    padding: 1rem;
-    box-shadow: 0 0.25rem 3rem rgba(0,0,0,0.075);
-    min-height: 20rem;
-    border-radius: 0.5rem;
+.singleDoc .docTitle {
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
 }
-.composeBtn {
-    display: flex;
-    font-size: 1rem;
-    width: 100%;
-    height: 3rem;
-    background-color: white;
-    /*border: 1px solid #eee;*/
-    border: none;
-    box-shadow: 0 0.25rem 3rem rgba(0,0,0,0.075);
-    border-radius: 0.5rem;
-    flex-direction: row;
-    justify-content: center;
+.singleDoc .docUpdate {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--subText);
+    margin-top: 0.25rem;
 }
-.composeBtn:hover {
-    box-shadow: 0 0.25rem 3rem rgba(0,0,0,0.15);
-    /*border: 0.125rem solid #3498db;*/
-    transition: 0.5s all;
+.singleDoc:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
 }
+
+/**
+ * SLATE EDITOR SECTION
+ */
 .slateContainer {
     background-color: white;
-    margin: 0.5rem;
     border-radius: 0.5rem;
     padding: 1rem;
-    box-shadow: 0 0.25rem 2rem rgba(0,0,0,0.07);
+    border: 1px solid var(--border);
 }
 .editor {
     padding-top: 1rem;
-    color: #455A64;
+    color: var(--mainText);
     min-height: 16rem;
     font-size: 1rem;
+}
+.titleBar {
+    display: flex;
+    flex-direction: row;
+    paddingBottom: 1rem;
+    borderBottom: 1px solid var(--border);
+}
+.titleBar input {
+    flex: 1;
+    margin-bottom: 1rem;
+    border: none;
+    background-color: var(--lightBG);
+    justify-content: center;
+    padding: 0 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+    height: 2.5rem;
+    color: var(--mainText);
+    font-weight: 600;
+}
+.titleBar .actionButtons {
+    padding-left: 1rem;
+}
+.titleBar .actionButtons > button{
+    height: 2.5rem;
+    padding: 0 1.25rem;
+    background-color: white;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+.titleBar .actionButtons > button:first-child {
+    background-color: var(--brand);
+    color: white;
+}
+.titleBar .actionButtons > button:first-child:hover {
+    background-color: var(--brandDark);
+    transition: 0.3s all;
+}
+.titleBar .actionButtons > button:last-child {
+    margin-left: 0.25rem;
+    border: 1px solid var(--border);
+    color: var(--subText);
+}
+.titleBar .actionButtons > button:last-child:hover {
+    background-color: var(--lightBG);
+    transition: 0.3s all;
 }
 .toolbar {
     padding-bottom: 1rem;
     display: flex;
     flex-direction: row;
-    border-bottom: 1px solid #ECEFF1;
+    border-bottom: 1px solid var(--border);
 }
 .iconButton {
     display: flex;
@@ -95,19 +182,19 @@ button:focus, button:active {
  * TEXT FORMATTING
  */
 code {
-    color: #607D8B;
+    color: var(--code);
     font-family: 'Roboto Mono', monospace;
     font-size: 14px;
-    background-color: #f1f3f5;
+    background-color: var(--lightBG);
     line-height: 1.25rem;
     padding: 0.125rem;
     border-radius: 0.25rem;
 }
 blockquote {
-    color: #90A4AE;
+    color: var(--subText);
     font-weight: 300;
     font-style: italic;
-    border-left: 2px solid #e6e6e6;
+    border-left: 2px solid var(--border);
     padding-left: 1rem;
     margin-inline-start: 1.5rem;
     margin-inline-end: 1.5rem;
@@ -118,21 +205,21 @@ strong, h1, h2 {
     font-weight: 600;
 }
 
-/*
-*   IMAGE SECTION DESIGN
-*/
+/**
+ *  IMAGE SECTION DESIGN
+ */
 .imgSection {
     margin-left: auto;
     display: flex;
     flex-direction: row;
     font-size: 0.75rem;
-    color: #B0BEC5;
+    color: var(--subText);
 }
 .imgSection > span { margin-right: 0.5rem; }
 button.imgIconButton {
     background-color: white;
     height: 1.5rem;
-    border: 1px solid #ECEFF1;
+    border: 1px solid var(--border);
     border-radius: 0.25rem;
     padding: 0.25rem 0.75rem;
     margin-right: 0.25rem;
@@ -142,8 +229,10 @@ button.imgIconButton {
     padding: 1rem;
 }
 img.editorImg {
+    display: 'flex';
+    margin: 1rem;
     max-height: 20rem;
     padding: 0.25rem;
     border-radius: 0.125rem;
-    border: 1px solid #f1f3f5;
+    border: 1px solid var(--border);
 }
