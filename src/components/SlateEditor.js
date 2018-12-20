@@ -1,57 +1,74 @@
-import React, {Component, Fragment} from 'react';
-import { Value } from 'slate';
-import { Editor } from 'slate-react';
-import MaterialIcon from 'material-icons-react';
-import {getBase64, insertImage} from '../handler';
-import '../assets/css/index.css';
+import React, {PureComponent, Fragment} from 'react'
+import { Editor, getEventRange, getEventTransfer } from 'slate-react'
+import { Block, Value } from 'slate'
+import isUrl from 'is-url'
+import {connect} from 'react-redux'
+import Plain from 'slate-plain-serializer'
+import * as actions from '../actions'
+import MaterialIcon from 'material-icons-react'
+import WordCount from './plugin/wordCount'
+import {getBase64, insertImage, isImage} from './handler'
+import '../assets/css/index.css'
 
 const DEFAULT_NODE = 'paragraph';
-const initialValue = Value.fromJSON({
+const defaultTitle = 'Untitled Document'
+const initialValue = Plain.deserialize('');
+const schema = {
     document: {
-        nodes: [
-            {
-                object: 'block',
-                type: 'paragraph',
-                nodes: [
-                    {
-                        object: 'text',
-                        leaves: [
-                            {
-                                text: 'A line of text in a paragraph.',
-                            },
-                        ],
-                    },
-                ],
-            },
-        ],
+        last: { type: 'paragraph' },
+        normalize: (editor, { code, node, child }) => {
+            switch (code) {
+                case 'last_child_type_invalid': {
+                    const paragraph = Block.create('paragraph')
+                    return editor.insertNodeByKey(node.key, node.nodes.size, paragraph)
+                }
+            }
+        },
     },
-});
-const toolbarIconColor = '#90A4AE';
+    blocks: {
+        image: {
+            isVoid: true,
+        },
+    },
+}
+const plugins = [WordCount()];
 
-class SlateRichEditor extends Component {
+class SlateRichEditor extends PureComponent {
 
     constructor (props) {
         super (props);
         this.state = {
-            docIndex: null,
             value: initialValue,
-            title: 'Untitled Document',
+            title: defaultTitle,
+            loadDocIndex: null,
         }
     }
-    componentDidMount () {
-        const {document} = this.props;
 
-        console.log(document);
-
-        if(document !== null) {
-            let list = localStorage.getItem('doc_list');
-            list = list === null ? [] : JSON.parse(list);
+    componentDidUpdate () {
+        if (this.state.loadDocIndex !== null && typeof this.props.loadDoc === typeof undefined) {
             this.setState({
-                docIndex: document,
-                value: list[document].body,
+                value: initialValue,
+                title: defaultTitle,
+                loadDocIndex: null,
+            });
+            return;
+        }
+        if (typeof this.props.loadDoc === typeof undefined) return;
+
+        const {loadDoc, document} = this.props;
+        const {loadDocIndex} = this.state;
+
+        // Check if new Document is selected
+        if (loadDocIndex !== loadDoc) {
+            // New document is selected from the Left List
+            const value = Value.fromJSON(document.body);
+
+            this.setState({
+                title: document.title,
+                loadDocIndex: loadDoc,
+                value: value,
             });
         }
-        console.log(this.state.docIndex);
     }
     onChange = ({ value }) => {
         this.setState({value});
@@ -130,23 +147,27 @@ class SlateRichEditor extends Component {
                 editor.setBlocks(isActive ? DEFAULT_NODE : type);
             }
         } else {
-            // Handle the extra wrapping required for list buttons.
-            const isList = this.hasBlock('list-item');
-            const isType = value.blocks.some(block => {
-                return !!document.getClosest(block.key, parent => parent.type === type)
-            });
+            try {
+                // Handle the extra wrapping required for list buttons.
+                const isList = this.hasBlock('list-item');
+                const isType = value.blocks.some(block => {
+                    return !!document.getClosest(block.key, parent => parent.type === type)
+                });
 
-            if (isList && isType) {
-                editor
-                    .setBlocks(DEFAULT_NODE)
-                    .unwrapBlock('bulleted-list')
-                    .unwrapBlock('numbered-list');
-            } else if (isList) {
-                editor
-                    .unwrapBlock(type === 'bulleted-list' ? 'numbered-list' : 'bulleted-list')
-                    .wrapBlock(type);
-            } else {
-                editor.setBlocks('list-item').wrapBlock(type);
+                if (isList && isType) {
+                    editor
+                        .setBlocks(DEFAULT_NODE)
+                        .unwrapBlock('bulleted-list')
+                        .unwrapBlock('numbered-list');
+                } else if (isList) {
+                    editor
+                        .unwrapBlock(type === 'bulleted-list' ? 'numbered-list' : 'bulleted-list')
+                        .wrapBlock(type);
+                } else {
+                    editor.setBlocks('list-item').wrapBlock(type);
+                }
+            } catch (e) {
+                // handle error here!
             }
         }
     }
@@ -165,25 +186,91 @@ class SlateRichEditor extends Component {
         });
     };
 
+    onDropOrPaste = (event, editor, next) => {
+        const target = getEventRange(event, editor)
+        if (!target && event.type === 'drop') return next()
+
+        const transfer = getEventTransfer(event)
+        const { type, text, files } = transfer
+
+        if (type === 'files') {
+            for (const file of files) {
+                const reader = new FileReader()
+                const [mime] = file.type.split('/')
+                if (mime !== 'image') continue
+
+                reader.addEventListener('load', () => {
+                    editor.command(insertImage, reader.result, target)
+                })
+
+                reader.readAsDataURL(file)
+            }
+            return
+        }
+
+        if (type === 'text') {
+            if (!isUrl(text)) return next()
+            if (!isImage(text)) return next()
+            editor.command(insertImage, text, target)
+            return
+        }
+
+        next()
+    }
+
     saveDoc = () => {
         const {value, title} = this.state;
-        const list= localStorage.getItem('doc_list');
 
-        let docList = list !== null ? JSON.parse(list) : [];
-        console.log(docList);
+        if(Plain.serialize(value).replace(/\s/g, '') === '') {
+            window.alert("Can not save blank Document!");
+            return;
+        }
 
-        const content = {
+        // Save new Article!
+        if (typeof this.props.loadDoc === typeof undefined) {
+            const payload = {
+                title: title,
+                time: Date.now(),
+                body: value
+            }
+            this.props.addNewDoc (payload);
+            return;
+        }
+
+        // update old Article
+        const {loadDoc} = this.props;
+        const payload = {
+            index: loadDoc,
             title: title,
             time: Date.now(),
-            body: value.toJSON()
+            body: value
         }
-        docList.push(content);
-
-        localStorage.setItem('doc_list', JSON.stringify(docList));
+        this.props.updateDoc (payload);
     };
 
     cancelDoc = () => {
+        if (typeof this.props.loadDoc === typeof undefined) {
+            this.setState({
+                title: defaultTitle,
+                value: initialValue,
+            });
+            return;
+        }
+        const {loadDoc, document} = this.props;
+        const value = Value.fromJSON(document.body);
 
+        this.setState({
+            title: document.title,
+            loadDocIndex: loadDoc,
+            value: value,
+        });
+    }
+
+    deleteDoc = () => {
+        if (window.confirm('Are you sure Delete This Document?')) {
+            this.props.deleteDoc(this.props.loadDoc);
+            this.props.composeNew();
+        }
     }
 
     /**
@@ -191,48 +278,64 @@ class SlateRichEditor extends Component {
      */
     render() {
         const {value, title} = this.state;
+        const {loadDoc} = this.props;
+
         return (
-            <div className='slateContainer'>
-                <div className="titleBar">
-                    <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => this.setState({title: e.target.value})}
-                    />
-                    <div className='actionButtons'>
-                        <button onClick={this.saveDoc}>Save</button>
-                        <button onClick={this.cancelDoc}>Cancel</button>
-                    </div>
-                </div>
-                <Fragment>
-                    <div className='toolbar'>
-                        {this.renderMarkButton('bold', 'format_bold')}
-                        {this.renderMarkButton('italic', 'format_italic')}
-                        {this.renderMarkButton('underlined', 'format_underlined')}
-                        {this.renderMarkButton('code', 'code')}
-                        {this.renderBlockButton('heading-one', 'looks_one')}
-                        {this.renderBlockButton('heading-two', 'looks_two')}
-                        {this.renderBlockButton('block-quote', 'format_quote')}
-                        {this.renderBlockButton('numbered-list', 'format_list_numbered')}
-                        {this.renderBlockButton('bulleted-list', 'format_list_bulleted')}
-                        <div className="imgSection">
-                            <span>Add Image:</span>
-                            {this.renderImageButton()}
-                            {this.renderUploadImageButton()}
+            <div>
+                <div className='slateContainer'>
+                    <div className="titleBar">
+                        <input
+                            type="text"
+                            value={title}
+                            onChange={(e) => this.setState({title: e.target.value})}
+                        />
+                        <div className='actionButtons'>
+                            <button onClick={this.saveDoc}>
+                                {typeof loadDoc !== typeof undefined ? <div>Update</div> : <div>Save</div>}
+                            </button>
+                            <button onClick={this.cancelDoc}>Cancel</button>
                         </div>
                     </div>
-                    <Editor
-                        placeholder="Enter some text..."
-                        ref={(editor) => this.editor = editor}
-                        className='editor'
-                        value={value}
-                        onChange={this.onChange}
-                        onKeyDown={this.onKeyDown}
-                        renderNode={this.renderNode}
-                        renderMark={this.renderMark}
-                    />
-                </Fragment>
-
+                    <Fragment>
+                        <div className='toolbar'>
+                            <div style={{display: 'flex', flexDirection: 'row'}}>
+                                {this.renderMarkButton('bold', 'format_bold')}
+                                {this.renderMarkButton('italic', 'format_italic')}
+                                {this.renderMarkButton('underlined', 'format_underlined')}
+                                {this.renderMarkButton('code', 'code')}
+                                {this.renderBlockButton('heading-one', 'looks_one')}
+                                {this.renderBlockButton('heading-two', 'looks_two')}
+                                {this.renderBlockButton('block-quote', 'format_quote')}
+                                {this.renderBlockButton('numbered-list', 'format_list_numbered')}
+                                {this.renderBlockButton('bulleted-list', 'format_list_bulleted')}
+                            </div>
+                            <div className="imgSection">
+                                <span>Add Image:</span>
+                                {this.renderImageButton()}
+                                {this.renderUploadImageButton()}
+                            </div>
+                        </div>
+                        <Editor
+                            plugins={plugins}
+                            placeholder="Enter some text..."
+                            ref={(editor) => this.editor = editor}
+                            className='editor'
+                            value={value}
+                            onChange={this.onChange}
+                            onKeyDown={this.onKeyDown}
+                            schema={schema}
+                            onDrop={this.onDropOrPaste}
+                            onPaste={this.onDropOrPaste}
+                            renderNode={this.renderNode}
+                            renderMark={this.renderMark}
+                        />
+                    </Fragment>
+                </div>
+                {typeof loadDoc !== typeof undefined ?
+                    <button className="deleteButton" onClick={this.deleteDoc}>
+                        Delete This Document
+                    </button> : null
+                }
             </div>
         );
     }
@@ -245,7 +348,7 @@ class SlateRichEditor extends Component {
                 className='iconButton'>
                 <MaterialIcon
                     icon={icon}
-                    color={toolbarIconColor}
+                    color='#90A4AE'
                     size='tiny'
                 />
             </button>
@@ -253,14 +356,14 @@ class SlateRichEditor extends Component {
     }
 
     renderBlockButton = (type, icon) => {
-        let isActive = this.hasBlock(type);
-        if (['numbered-list', 'bulleted-list'].includes(type)) {
-            const { value: { document, blocks } } = this.state;
-            if (blocks.size > 0 && blocks.first()) {
-                const parent = document.getParent(blocks.first().key)
-                isActive = this.hasBlock('list-item') && parent && parent.type === type
-            }
-        }
+        // let isActive = this.hasBlock(type);
+        // if (['numbered-list', 'bulleted-list'].includes(type)) {
+        //     const { value: { document, blocks } } = this.state;
+        //     if (blocks.size > 0 && blocks.first()) {
+        //         const parent = document.getParent(blocks.first().key)
+        //         isActive = this.hasBlock('list-item') && parent && parent.type === type
+        //     }
+        // }
         return (
             <button
                 onMouseDown={event => this.onClickBlock(event, type)}
@@ -268,7 +371,7 @@ class SlateRichEditor extends Component {
             >
                 <MaterialIcon
                     icon={icon}
-                    color={toolbarIconColor}
+                    color='#90A4AE'
                     size='tiny'
                 />
             </button>
@@ -282,7 +385,7 @@ class SlateRichEditor extends Component {
                 className='iconButton'>
                 <MaterialIcon
                     icon='insert_link'
-                    color={toolbarIconColor}
+                    color='#90A4AE'
                     size='tiny'
                 />
             </button>
@@ -304,7 +407,7 @@ class SlateRichEditor extends Component {
                     onChange={this.onUploadImage} />
                 <MaterialIcon
                     icon='add_photo_alternate'
-                    color={toolbarIconColor}
+                    color='#90A4AE'
                     size='tiny'
                 />
             </button>
@@ -331,7 +434,8 @@ class SlateRichEditor extends Component {
                 const src = node.data.get('src')
                 return  <img src={src}
                              alt='img'
-                             selected={isFocused} {...attributes}
+                             style={isFocused? {borderWidth: 1, borderColor: 'grey'}:null}
+                             {...attributes}
                              className='editorImg'/>
             default:
                 return next()
@@ -356,4 +460,15 @@ class SlateRichEditor extends Component {
     }
 }
 
-export default SlateRichEditor;
+const mapStateToProps = state => {
+    if(state.loadDoc !== null) {
+        return {
+            document: state.documents[state.loadDoc],
+            loadDoc: state.loadDoc,
+            valid: state.valid
+        }
+    }
+    return {};
+};
+
+export default connect(mapStateToProps,actions)(SlateRichEditor);

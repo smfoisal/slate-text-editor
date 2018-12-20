@@ -32,7 +32,26 @@ button {
 button:focus, button:active, input:focus, input:active {
     outline: none;
 }
-
+button:disabled,
+button[disabled]{
+    background-color: var(--border)!important;
+    cursor: default;
+}
+.pageHeader {
+    position: relative;
+    display: flex;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4rem;
+    background-color: var(--brand);
+    font-size: 1.25rem;
+    color: white;
+    font-weight: 300;
+    justify-content: center;
+    box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.1);
+    align-items: center;
+}
 /**
  * MAIN BODY
  */
@@ -40,7 +59,7 @@ button:focus, button:active, input:focus, input:active {
     display: flex;
     flex-direction: row;
     max-width: 64rem;
-    margin-top: 2rem;
+    margin-top: 1rem;
     margin-left: auto;
     margin-right: auto;
     padding: 0.5rem;
@@ -52,17 +71,30 @@ button:focus, button:active, input:focus, input:active {
 }
 .clEditor {
     padding: 0.5rem;
-    flex: 8;
+    overflow: hidden;
+    max-width: 100%;
     flex: 8;
 }
-
 /**
  * LIST SECTION
  */
+.composeNewButton {
+    height: 2.5rem;
+    width: 100%;
+    margin-bottom: 1rem;
+    padding: 0 1.25rem;
+    background-color: white;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    background-color: var(--brand);
+    color: white;
+}
 .infoText {
     font-size: 0.75rem;
     color: var(--subText);
     text-align: center;
+    padding: 1rem;
 }
 .listContainer {
     background-color: white;
@@ -76,18 +108,25 @@ button:focus, button:active, input:focus, input:active {
     padding: 0.75rem 1rem;
     cursor: pointer;
 }
+.singleDocActive {
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    color: var(--brand);
+    background-color: var(--lightBG);
+}
 .singleDoc:hover {
     background-color: var(--lightBG);
     transition: 0.3s all;
 }
-.singleDoc .docTitle {
+.docTitle {
     font-size: 0.875rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     font-weight: 600;
 }
-.singleDoc .docUpdate {
+.docUpdate {
     font-size: 0.75rem;
     line-height: 1rem;
     color: var(--subText);
@@ -120,6 +159,7 @@ button:focus, button:active, input:focus, input:active {
     borderBottom: 1px solid var(--border);
 }
 .titleBar input {
+    min-width: 0;
     flex: 1;
     margin-bottom: 1rem;
     border: none;
@@ -129,7 +169,7 @@ button:focus, button:active, input:focus, input:active {
     border-radius: 0.25rem;
     font-size: 1rem;
     height: 2.5rem;
-    color: var(--mainText);
+    color: var(--subText);
     font-weight: 600;
 }
 .titleBar .actionButtons {
@@ -137,7 +177,8 @@ button:focus, button:active, input:focus, input:active {
 }
 .titleBar .actionButtons > button{
     height: 2.5rem;
-    padding: 0 1.25rem;
+    width: 5rem;
+    /*padding: 0 1.25rem;*/
     background-color: white;
     border: none;
     border-radius: 0.25rem;
@@ -175,7 +216,11 @@ button:focus, button:active, input:focus, input:active {
     background-color: transparent;
     border: none;
     margin-right: 0.5rem;
-    border-radius: 0.5rem;
+    border-radius: 1rem;
+}
+.iconButton:hover {
+    background-color: var(--lightBG);
+    transition: 0.5s ease-in-out;
 }
 
 /**
@@ -229,10 +274,61 @@ button.imgIconButton {
     padding: 1rem;
 }
 img.editorImg {
-    display: 'flex';
     margin: 1rem;
     max-height: 20rem;
+    max-width: calc(100% - 2rem);
     padding: 0.25rem;
     border-radius: 0.125rem;
     border: 1px solid var(--border);
+}
+.wordCount {
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    font-size: 0.75rem;
+    color: var(--subText);
+    line-height: 1rem;
+    margin-top: 1rem;
+}
+.deleteButton {
+    margin-top: 0.5rem;
+    background-color: transparent;
+    color: #ef9a9a;
+    border: none;
+    font-size: 0.75rem;
+}
+.deleteButton:hover {
+    color: #f44336;
+    transition: 0.3s ease-in-out;
+}
+
+@media only screen and (max-width: 40rem) {
+    .wrapper {
+        flex-direction: column;
+    }
+    .clList {
+        flex: 1;
+    }
+    .clEditor {
+        flex: 1;
+    }
+    .toolbar {
+        flex-direction: column;
+    }
+    .imgSection {
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
+    .singleDocActive,
+    .singleDoc {
+        display: flex;
+        flex-direction: row;
+    }
+    .singleDocActive > .docUpdate,
+    .singleDoc > .docUpdate {
+        margin-left: auto;
+        padding-left: 1rem;
+        white-space: nowrap;
+    }
 }

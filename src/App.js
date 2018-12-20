@@ -1,31 +1,34 @@
-import React, {Component} from 'react';
+import React, {Component} from 'react'
+import {Provider} from 'react-redux'
+import {createStore} from 'redux'
+import reducers from './reducers'
 import SlateEditor from './components/SlateEditor'
 import DocList from './components/DocList'
+import Header from './components/common/Header'
+
+const store = createStore(reducers);
+
 
 class App extends Component {
-    constructor (props) {
-        super (props);
-        this.state = {
-            document: null
-        }
-    }
-    loadDocument = index => {
-        console.log('loadDocument', index);
-        this.setState({document: index});
-    };
+
     render() {
-        const {document} = this.state;
         return (
-            <div className="wrapper">
-                <div className="clList">
-                    <DocList loadDocument={this.loadDocument}/>
+            <Provider store={store}>
+                <div>
+                    <Header />
+                    <div className="wrapper">
+                        <div className="clList">
+                            <DocList />
+                        </div>
+                        <div className="clEditor">
+                            <SlateEditor />
+                        </div>
+                    </div>
                 </div>
-                <div className="clEditor">
-                    <SlateEditor document={document}/>
-                </div>
-            </div>
+            </Provider>
         );
     }
+
 }
 
 export default App;

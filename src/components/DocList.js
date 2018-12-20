@@ -1,32 +1,36 @@
-import React, {Component} from 'react';
+import React, {PureComponent} from 'react'
+import {connect} from 'react-redux'
+import * as actions from '../actions'
 
 const monthList = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-class DocList extends Component {
+class DocList extends PureComponent {
     constructor (props) {
         super (props);
         this.state = {
             loading: true,
-            list: []
         }
     }
 
     componentDidMount () {
-        let list = localStorage.getItem('doc_list');
-        list = list === null ? [] : JSON.parse(list);
-
+        this.props.initialSet();
         this.setState({
-            list: list,
             loading: false
         })
     }
+
     loadDoc = index => {
+        const {loadDoc} = this.props;
+        if (loadDoc === index) return;
+
         this.props.loadDocument(index);
     }
     render() {
-        const {loading, list} = this.state;
+        const {loading} = this.state;
+        const {documents, loadDoc} = this.props;
+        console.log(documents);
 
-        const docList = list.map((doc, index) => {
+        const docList = documents.map((doc, index) => {
             const _date = new Date(doc.time);
 
             const date = _date.getDate();
@@ -40,7 +44,7 @@ class DocList extends Component {
 
             return (
                 <div
-                    className="singleDoc"
+                    className={index === loadDoc ? "singleDocActive" : "singleDoc"}
                     key={index}
                     onClick={() => this.loadDoc(index)}>
                     <div className="docTitle">{doc.title}</div>
@@ -55,11 +59,20 @@ class DocList extends Component {
                 No Document Found
             </div>
         );
+        const checkNew = loadDoc === null ? true : false;
 
         if(!loading) {
             return (
-                <div className="listContainer">
-                    { list.length > 0 ? docList : noDoc }
+                <div>
+                    <button
+                        className="composeNewButton"
+                        onClick={() => this.props.composeNew()}
+                        disabled={checkNew}>
+                        Compose New
+                    </button>
+                    <div className="listContainer">
+                        { documents.length > 0 ? docList : noDoc }
+                    </div>
                 </div>
             );
         }
@@ -73,4 +86,11 @@ class DocList extends Component {
     }
 }
 
-export default DocList;
+const mapStateToProps = state => {
+    return {
+        documents: state.documents,
+        loadDoc: state.loadDoc
+    }
+};
+
+export default connect(mapStateToProps, actions)(DocList);

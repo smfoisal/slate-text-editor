@@ -1,3 +1,5 @@
+import imageExtensions from 'image-extensions'
+
 export const getBase64 = (file) => {
     return new Promise((resolve,reject) => {
         const reader = new FileReader();
@@ -16,3 +18,7 @@ export const insertImage = (editor, src, target) => {
         data: { src },
     })
 };
+
+export const isImage = url => {
+    return !!imageExtensions.find(url.endsWith)
+}
