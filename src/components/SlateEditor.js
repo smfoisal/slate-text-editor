@@ -10,6 +10,9 @@ import WordCount from './plugin/wordCount'
 import {getBase64, insertImage, isImage} from './handler'
 import '../assets/css/index.css'
 
+/**
+ * VARS
+ */
 const DEFAULT_NODE = 'paragraph';
 const defaultTitle = 'Untitled Document'
 const initialValue = Plain.deserialize('');
@@ -33,6 +36,9 @@ const schema = {
 }
 const plugins = [WordCount()];
 
+/**
+ *
+ */
 class SlateRichEditor extends PureComponent {
 
     constructor (props) {
@@ -74,15 +80,20 @@ class SlateRichEditor extends PureComponent {
         this.setState({value});
     }
 
+    // CHECK IF SLECTED SECTION IS MARKED
     hasMark = type => {
         const { value } = this.state;
         return value.activeMarks.some(mark => mark.type === type);
     }
+
+    // CHECK IF BLOCK SECTION IS MARKED
     hasBlock = type => {
         const { value } = this.state;
         return value.blocks.some(node => node.type === type);
     }
 
+    // KEYBOARD KEY PRESS EVENTS
+    // todo: ADD MORE KEY EVENTS
     onKeyDown = (event, editor, next) => {
 
         const TAB_KEY = 9;
@@ -121,11 +132,13 @@ class SlateRichEditor extends PureComponent {
         return next();
     }
 
+    // UPDATE MARK ON SELECTED SECTION
     onClickMark = (event, type) => {
         event.preventDefault()
         this.editor.toggleMark(type)
     }
 
+    // UPDATE MARK ON SELECTED SECTIONS FULL BLOCK
     onClickBlock = (event, type) => {
         event.preventDefault();
 
@@ -172,6 +185,7 @@ class SlateRichEditor extends PureComponent {
         }
     }
 
+    // ADD IMAGE URL ON PRESS
     onClickImage = event => {
         event.preventDefault()
         const src = window.prompt('Enter the URL of the image:')
@@ -179,6 +193,7 @@ class SlateRichEditor extends PureComponent {
         this.editor.command(insertImage, src)
     }
 
+    // UPLOAD IMAGE EVENT
     onUploadImage = event => {
         const selectedFile= event.target.files[0];
         getBase64(selectedFile).then(base64 => {
@@ -186,6 +201,7 @@ class SlateRichEditor extends PureComponent {
         });
     };
 
+    // DRAG, DROP OR REARRANGE IMAGE INSIDE EDITOR
     onDropOrPaste = (event, editor, next) => {
         const target = getEventRange(event, editor)
         if (!target && event.type === 'drop') return next()
@@ -218,6 +234,7 @@ class SlateRichEditor extends PureComponent {
         next()
     }
 
+    // SAVE OR UPDATE DOCUMENT
     saveDoc = () => {
         const {value, title} = this.state;
 
@@ -248,6 +265,7 @@ class SlateRichEditor extends PureComponent {
         this.props.updateDoc (payload);
     };
 
+    // RETURNS LAST SAVED DOCUMENT
     cancelDoc = () => {
         if (typeof this.props.loadDoc === typeof undefined) {
             this.setState({
@@ -266,6 +284,7 @@ class SlateRichEditor extends PureComponent {
         });
     }
 
+    // DELETE DOCUMENT
     deleteDoc = () => {
         if (window.confirm('Are you sure Delete This Document?')) {
             this.props.deleteDoc(this.props.loadDoc);
@@ -276,6 +295,7 @@ class SlateRichEditor extends PureComponent {
     /**
      * RENDER METHODS
      */
+    // MAIN
     render() {
         const {value, title} = this.state;
         const {loadDoc} = this.props;
@@ -340,6 +360,7 @@ class SlateRichEditor extends PureComponent {
         );
     }
 
+    // RENDER IF MARK IS FOR SELECTED SECTION
     renderMarkButton = (type, icon) => {
         // const isActive = this.hasMark(type);
         return (
@@ -355,6 +376,7 @@ class SlateRichEditor extends PureComponent {
         )
     }
 
+    // RENDER BLOCK CHANGES
     renderBlockButton = (type, icon) => {
         // let isActive = this.hasBlock(type);
         // if (['numbered-list', 'bulleted-list'].includes(type)) {
@@ -378,6 +400,7 @@ class SlateRichEditor extends PureComponent {
         )
     }
 
+    // ADD URL BUTTON
     renderImageButton = () => {
         return (
             <button
@@ -392,6 +415,7 @@ class SlateRichEditor extends PureComponent {
         );
     }
 
+    // UPLOAD IMAGE BUTTON
     renderUploadImageButton = () => {
         return (
             <button
@@ -414,6 +438,7 @@ class SlateRichEditor extends PureComponent {
         );
     }
 
+    // RENDER DOCUMENT BLOCK NODES
     renderNode = (props, editor, next) => {
         const { attributes, children, node, isFocused } = props
 
@@ -442,6 +467,7 @@ class SlateRichEditor extends PureComponent {
         }
     }
 
+    // RENDER MARKS
     renderMark = (props, editor, next) => {
         const { children, mark, attributes } = props
 
@@ -460,6 +486,9 @@ class SlateRichEditor extends PureComponent {
     }
 }
 
+/**
+ * REDUX
+ */
 const mapStateToProps = state => {
     if(state.loadDoc !== null) {
         return {

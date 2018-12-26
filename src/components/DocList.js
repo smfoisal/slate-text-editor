@@ -2,8 +2,14 @@ import React, {PureComponent} from 'react'
 import {connect} from 'react-redux'
 import * as actions from '../actions'
 
+/**
+ * VARS
+ */
 const monthList = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+/**
+ *
+ */
 class DocList extends PureComponent {
     constructor (props) {
         super (props);
@@ -11,7 +17,6 @@ class DocList extends PureComponent {
             loading: true,
         }
     }
-
     componentDidMount () {
         this.props.initialSet();
         this.setState({
@@ -19,12 +24,15 @@ class DocList extends PureComponent {
         })
     }
 
+    // LOAD DOCUMENT ON CLICK EVENT
     loadDoc = index => {
         const {loadDoc} = this.props;
         if (loadDoc === index) return;
 
         this.props.loadDocument(index);
     }
+
+    // RENDER
     render() {
         const {loading} = this.state;
         const {documents, loadDoc} = this.props;
@@ -86,6 +94,9 @@ class DocList extends PureComponent {
     }
 }
 
+/**
+ * REDUX
+ */
 const mapStateToProps = state => {
     return {
         documents: state.documents,
