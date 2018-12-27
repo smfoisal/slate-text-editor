@@ -1,5 +1,5 @@
 ## Custom Rich Text Editor using Slate
-Rich Text Editor Using React, Redux and Slat
+Rich Text Editor Using React, Redux and Slate.js
 
 
 
