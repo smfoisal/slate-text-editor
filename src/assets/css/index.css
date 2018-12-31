@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css?family=Roboto+Mono:400,700|Roboto:400,700');
 
-//ROOT VARIABLES
+/*ROOT VARIABLES*/
 :root {
     --mainText: #455A64;
     --subText: #90A4AE;
@@ -23,7 +23,7 @@ body {
     line-height: 1.5rem;
 }
 
-// GENERAL
+/*GENERAL*/
 button {
     font-family: inherit;
     cursor: pointer;
