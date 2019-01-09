@@ -1,43 +1,30 @@
 import React, {PureComponent, Fragment} from 'react'
 import { Editor, getEventRange, getEventTransfer } from 'slate-react'
-import { Block, Value } from 'slate'
+import { Value } from 'slate'
 import isUrl from 'is-url'
-import {connect} from 'react-redux'
 import Plain from 'slate-plain-serializer'
-import * as actions from '../actions'
 import MaterialIcon from 'material-icons-react'
-import WordCount from './plugin/wordCount'
-import {getBase64, insertImage, isImage} from './handler'
 import '../assets/css/index.css'
 
+// redux libraries
+import {connect} from 'react-redux'
+import * as actions from '../actions'
+
+// Slate custom Libraries
+import schema from '../slate/schema'
+import value from '../slate/initValue.json'
+import WordCount from '../slate/plugin/wordCount'
+import {getBase64, insertImage, isImage} from '../slate/handler'
 /**
  * VARS
  */
 const DEFAULT_NODE = 'paragraph';
-const defaultTitle = 'Untitled Document'
-const initialValue = Plain.deserialize('');
-const schema = {
-    document: {
-        last: { type: 'paragraph' },
-        normalize: (editor, { code, node, child }) => {
-            switch (code) {
-                case 'last_child_type_invalid': {
-                    const paragraph = Block.create('paragraph')
-                    return editor.insertNodeByKey(node.key, node.nodes.size, paragraph)
-                }
-            }
-        },
-    },
-    blocks: {
-        image: {
-            isVoid: true,
-        },
-    },
-}
+const defaultTitle = 'Untitled Document';
+const initialValue = Value.fromJSON(value);
 const plugins = [WordCount()];
 
 /**
- *
+ * MAIN
  */
 class SlateRichEditor extends PureComponent {
 
@@ -76,6 +63,8 @@ class SlateRichEditor extends PureComponent {
             });
         }
     }
+
+    //
     onChange = ({ value }) => {
         this.setState({value});
     }
@@ -103,7 +92,12 @@ class SlateRichEditor extends PureComponent {
             const { value } = editor;
             const { document } = value;
 
-            const isList = value.blocks.some(block => block.type === 'list-item');
+            const isList = value.blocks.some( block => {
+                if(document.getDepth(block.key) > 3)
+                    return false;
+                return block.type === 'list-item'
+            });
+
             const isUl =  value.blocks.some(block => {
                 return !!document.getClosest(block.key, parent => parent.type === 'bulleted-list')
             });
@@ -114,7 +108,6 @@ class SlateRichEditor extends PureComponent {
                 const listEnds =  value.blocks.some(block => {
                     return !!document.getClosest(block.key, parent => parent.type === 'bulleted-list' || parent.type === 'numbered-list')
                 });
-                console.log(listEnds)
 
                 if(!listEnds)
                     editor.setBlocks(DEFAULT_NODE);
